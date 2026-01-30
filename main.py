@@ -11,27 +11,39 @@ SHORT_BREAK_MIN = 5
 LONG_BREAK_MIN = 20
 
 # ---------------------------- GLOBAL VARIABLES ------------------------------- #
-timer = None
+timer = None          # stores the after() id so we can cancel it
+timer_running = False # prevents multiple timers
 
 # ---------------------------- TIMER START ------------------------------- #
 def start_timer():
+    global timer_running
+
+    if timer_running:
+        return  # ← prevents starting another timer
+
+    timer_running = True
+    start_button.config(state="disabled", text="Running…")
     # For testing — start with 5 seconds
     # In real Pomodoro: count_down(WORK_MIN * 60)
-    count_down(5)
+    count_down(5 * 60)
 
 # ---------------------------- TIMER RESET ------------------------------- #
 def reset_timer():
-    global timer
+    global timer, timer_running
     # Cancel any running timer
     if timer is not None:
-        window.after_cancel(timer)
+        window.after_cancel(str(timer))
         timer = None
 
+    timer_running = False
     # Reset display
     canvas.itemconfig(timer_text, text="00:00")
+    title_label.config(text="Timer", fg=GREEN, bg=YELLOW)
+    start_button.config(state="normal", text="Start")
 
 # ---------------------------- TIMER MECHANISM ------------------------------- #
 def count_down(count):
+    global timer, timer_running
     # Convert count (in seconds) to minutes and seconds
     minutes = count // 60
     seconds = count % 60
@@ -44,11 +56,12 @@ def count_down(count):
 
     if count > 0:
         # Schedule the next call after 1000ms (1 second)
-        global timer
         timer = window.after(1000, count_down, count - 1)
     else:
         # Timer has finished — you can add sound, change color, start next phase, etc.
         print("Time's up!")
+        timer_running = False
+        start_button.config(state="normal", text="Start")
 
 # ---------------------------- UI SETUP ------------------------------- #
 
@@ -65,7 +78,7 @@ canvas.create_image(100, 112, image=tomato_img)
 timer_text = canvas.create_text(100, 130, text="00:00", fill="white", font=(FONT_NAME, 35, "bold"))
 canvas.grid(row=1, column=1)
 
-count_down(5 * 60)
+# count_down(5 * 60)
 
 start_button = Button(text="Start", highlightthickness=0, command=start_timer)
 start_button.grid(row=2, column=0)
